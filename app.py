@@ -4,7 +4,6 @@ import numpy as np
 import base64
 import re
 from tensorflow.keras.models import load_model
-import os
 
 app = Flask(__name__)
 
@@ -38,11 +37,10 @@ def predict():
     confidence = np.max(prediction)
 
     if confidence < 0.7:
-        return "I don't know this"
+        return "🫨 잘 모르겠어요.ㅠ"
     else:
-        return f"{class_names[np.argmax(prediction)]} ({confidence * 100:.1f}%)"
+        return f"✅ {class_names[np.argmax(prediction)]} ({confidence * 100:.1f}%) 이게 맞나요?"
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
