@@ -1,36 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>웹캠 그림 인식</title>
+  <meta charset="utf-8">
+  <title>AI 그림 인식</title>
 </head>
 <body>
-  <h2>웹캠에서 그림을 캡처하세요</h2>
+  <h2>🖼️ 웹캠으로 그림 인식하기</h2>
   <video id="video" width="300" autoplay></video>
-  <canvas id="canvas" width="300" height="300" style="display:none;"></canvas>
   <br>
   <button onclick="capture()">사진 캡처 & 예측</button>
-  <p id="result"></p>
+  <canvas id="canvas" width="300" height="300" style="display:none;"></canvas>
+  <p id="result">결과가 여기에 표시됩니다</p>
 
   <script>
     const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         video.srcObject = stream;
       });
 
     function capture() {
-      const canvas = document.getElementById('canvas');
-      canvas.getContext('2d').drawImage(video, 0, 0, 300, 300);
-      const dataURL = canvas.toDataURL('image/png');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL('image/png');
 
       fetch('/predict', {
         method: 'POST',
-        body: JSON.stringify({ image: dataURL }),
+        body: JSON.stringify({ image: imageData }),
         headers: { 'Content-Type': 'application/json' }
       })
-      .then(res => res.text())
-      .then(data => {
-        document.getElementById('result').innerText = "결과: " + data;
+      .then(response => response.text())
+      .then(result => {
+        document.getElementById('result').innerText = "결과: " + result;
+      })
+      .catch(error => {
+        document.getElementById('result').innerText = "에러 발생: " + error;
       });
     }
   </script>
