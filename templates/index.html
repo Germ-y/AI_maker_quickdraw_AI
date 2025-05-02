@@ -3,19 +3,203 @@
 <head>
   <meta charset="utf-8">
   <title>AI 그림 인식</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Gowun Batang', serif;
+      background-color: #fdfdfd;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: hidden;
+    }
+
+    .title {
+      text-align: center;
+      margin-bottom: 10px;
+      margin-top: 10px;
+    }
+
+    .title h1 {
+      font-size: 2.2em;
+      color: #2c3e50;
+      margin-bottom: 5px;
+    }
+
+    .title h2 {
+      font-size: 1.5em;
+      color: #2980b9;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: row;
+      max-width: 1100px;
+      width: 100%;
+      min-height: 620px;
+      background-color: white;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      padding: 10px 30px;
+      gap: 20px;
+    }
+
+    .left {
+      flex: 1;
+      font-size: 1.15em;
+      line-height: 1.9;
+      color: #333;
+      padding-left: 10px;
+      padding-top: 0;
+    }
+
+    .left p {
+      white-space: pre-line;
+      margin-top: 0;
+    }
+
+    .right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    video {
+      border: 4px solid #ddd;
+      border-radius: 20px;
+      width: 400px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      background-color: #3498db;
+      color: white;
+      border-radius: 12px;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    #loader {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      display: none;
+      margin: 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #result {
+      font-size: 1.2em;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .success-message {
+  font-weight: bold;
+  font-size: 1.8em;
+  color: #27ae60;
+  margin-top: 20px;
+  animation: popFade 0.6s ease-out;
+  text-align: center;
+}
+
+@keyframes popFade {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(600px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.emoji {
+  position: absolute;
+  font-size: 2rem;
+  animation: fall 2.5s ease-in forwards;
+  z-index: 9999;
+  user-select: none;
+}
+
+  </style>
 </head>
 <body>
-  <h2>🖼️ 웹캠으로 그림 인식하기</h2>
-  <video id="video" width="300" autoplay></video>
-  <br>
-  <button onclick="capture()">사진 캡처 & 예측</button>
-  <canvas id="canvas" width="300" height="300" style="display:none;"></canvas>
-  <p id="result">결과가 여기에 표시됩니다</p>
+
+  <div class="title">
+    <h1>🎉 서청센 페스티벌 - AI를 이겨라! 🎉</h1>
+    <h2>🖍️ 그림으로 한 판해!</h2>
+  </div>
+
+  <div class="card">
+    <div class="left">
+      <p>
+✨ 우리 부스에서 단어를 알려줄거에요!
+🖼️ 그 단어를 멋지게 그림으로 표현해 보세요.
+🤖 AI가 여러분의 그림을 보고 정답을 맞히면 성공!
+
+(예시)
+"강아지"🐶를 받으면, 그림을 그리고
+→ AI가 "강아지!"라고 맞추면, 🎯 성공!
+
+실패해도 괜찮아요!
+귀엽게, 똑똑하게, 창의력 넘치게 다시 도전해보세요! 💪
+
+<strong>🏆 당신의 그림 실력으로 AI를 이겨보세요!</strong>
+      </p>
+    </div>
+
+    <div class="right">
+      <video id="video" autoplay></video>
+      <button onclick="capture()">AI한테 보여주기 🎨</button>
+      <canvas id="canvas" width="400" height="400" style="display:none;"></canvas>
+      <div id="loader"></div>
+      <p id="result">🧐 무슨 그림인지 맞춰볼게요!</p>
+      <div id="verify-buttons" style="display:none; margin-top:10px;">
+        <button onclick="confirmSuccess()">네! ✅</button>
+        <button onclick="resetToInitial()">아니요 🔄</button>
+    </div>
+    <p id="final-message" class="success-message"></p>
+    </div>
+  </div>
 
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const resultElement = document.getElementById('result');
+    const loader = document.getElementById('loader');
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
@@ -23,22 +207,68 @@
       });
 
     function capture() {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL('image/png');
+  resultElement.innerText = "예측 중입니다...";
+  loader.style.display = "block";
+  document.getElementById('verify-buttons').style.display = "none";
+  document.getElementById('final-message').innerText = "";
 
-      fetch('/predict', {
-        method: 'POST',
-        body: JSON.stringify({ image: imageData }),
-        headers: { 'Content-Type': 'application/json' }
-      })
-      .then(response => response.text())
-      .then(result => {
-        document.getElementById('result').innerText = "결과: " + result;
-      })
-      .catch(error => {
-        document.getElementById('result').innerText = "에러 발생: " + error;
-      });
-    }
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = canvas.toDataURL('image/png');
+
+  fetch('/predict', {
+    method: 'POST',
+    body: JSON.stringify({ image: imageData }),
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(response => response.text())
+  .then(result => {
+  loader.style.display = "none";
+  resultElement.innerText = result;
+
+  if (result.includes("잘 모르겠어요")) {
+    document.getElementById('verify-buttons').style.display = "none";
+  } else {
+    document.getElementById('verify-buttons').style.display = "block";
+  }
+})
+  .catch(error => {
+    loader.style.display = "none";
+    resultElement.innerText = "❌ 에러 발생: " + error;
+  });
+}
+
+function confirmSuccess() {
+  const finalMsg = document.getElementById('final-message');
+  document.getElementById('verify-buttons').style.display = "none";
+  launchEmojiRain();
+  finalMsg.innerText = "🎉 AI가 정답을 맞췄어요! 축하합니다! 🎊";
+  finalMsg.classList.remove("success-message");
+  void finalMsg.offsetWidth;
+  finalMsg.classList.add("success-message");
+
+}
+
+function resetToInitial() {
+  document.getElementById('result').innerText = "🧐 무슨 그림인지 맞춰볼게요!";
+  document.getElementById('verify-buttons').style.display = "none";
+  document.getElementById('final-message').innerText = "";
+}
+
+function launchEmojiRain() {
+  const emojiList = ['🎉', '🎊', '✨', '💫', '🌟'];
+  const container = document.getElementById('emoji-container');
+  for (let i = 0; i < 25; i++) {
+    const emoji = document.createElement('span');
+    emoji.classList.add('emoji');
+    emoji.innerText = emojiList[Math.floor(Math.random() * emojiList.length)];
+    emoji.style.left = Math.random() * 100 + 'vw';
+    emoji.style.top = '-50px';
+    emoji.style.animationDelay = Math.random() * 0.5 + 's';
+    container.appendChild(emoji);
+    setTimeout(() => emoji.remove(), 3000);
+  }
+}
   </script>
+<div id="emoji-container" style="pointer-events:none;"></div>
 </body>
 </html>
