@@ -5,10 +5,14 @@ import base64
 import re
 from tensorflow.keras.models import load_model
 
+name="bicycle"
+
+name_dict={name:name,
+           'necklace':"necklace"}
 app = Flask(__name__)
 
-model = load_model("quickdraw_5class_model.keras")
-with open("categories.txt", "r") as f:
+model = load_model(f"quickdraw_class_model_{name}.keras")
+with open(f"categories_{name}.txt", "r") as f:
     class_names = f.read().splitlines()
 
 
@@ -36,10 +40,10 @@ def predict():
     prediction = model.predict(input_img, verbose=0)
     confidence = np.max(prediction)
 
-    if confidence < 0.7:
-        return "🫨 잘 모르겠어요.ㅠ"
+    if name_dict[class_names[np.argmax(prediction)]]=="necklace":
+        return f"🫨 {name_dict[class_names[np.argmax(prediction)]]} ({confidence * 100:.1f})점"
     else:
-        return f"✅ {class_names[np.argmax(prediction)]} ({confidence * 100:.1f}%) 이게 맞나요?"
+        return f"✅ {name_dict[class_names[np.argmax(prediction)]]} ({confidence * 100:.1f})점"
 
 
 if __name__ == '__main__':
